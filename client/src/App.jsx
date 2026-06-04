@@ -14,11 +14,25 @@ import {
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3001/api';
+const IS_DEMO = window.location.hostname.includes('github.io');
+
+// Mock data for demo mode
+const MOCK_BUSINESS = {
+  name: "Demo Reformas Madrid",
+  type: "contractor",
+  phone: "+34 600 000 000",
+  email: "demo@reformas.com"
+};
+
+const MOCK_LEADS = [
+  { id: 1, name: "Juan Pérez", phone: "611223344", source: "chat", status: "booked", created_at: new Date().toISOString() },
+  { id: 2, name: "Maria Garcia", phone: "622334455", source: "missed_call", status: "new", created_at: new Date().toISOString() }
+];
 
 function App() {
-  const [business, setBusiness] = useState(null);
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [business, setBusiness] = useState(IS_DEMO ? MOCK_BUSINESS : null);
+  const [leads, setLeads] = useState(IS_DEMO ? MOCK_LEADS : []);
+  const [loading, setLoading] = useState(!IS_DEMO);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -28,6 +42,7 @@ function App() {
   }, []);
 
   const fetchBusiness = async () => {
+    if (IS_DEMO) return;
     try {
       const res = await axios.get(`${API_BASE}/business`);
       if (!res.data.name) {
@@ -41,6 +56,7 @@ function App() {
   };
 
   const fetchLeads = async () => {
+    if (IS_DEMO) return;
     try {
       const res = await axios.get(`${API_BASE}/leads`);
       setLeads(res.data);
@@ -235,9 +251,14 @@ function ChatWidget({ business, onNewMessage }) {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/chat`, { leadId, message: userMsg });
-      setLeadId(res.data.leadId);
-      setChat(prev => [...prev, { role: 'assistant', content: res.data.message }]);
+      if (IS_DEMO) {
+        await new Promise(r => setTimeout(r, 1000));
+        setChat(prev => [...prev, { role: 'assistant', content: "¡Hola! Soy tu asistente de IA de prueba. He capturado tu mensaje correctamente y simularé el proceso de reserva." }]);
+      } else {
+        const res = await axios.post(`${API_BASE}/chat`, { leadId, message: userMsg });
+        setLeadId(res.data.leadId);
+        setChat(prev => [...prev, { role: 'assistant', content: res.data.message }]);
+      }
       onNewMessage();
     } catch (err) {
       console.error(err);
